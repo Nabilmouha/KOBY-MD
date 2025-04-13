@@ -1,53 +1,51 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Deploy
 
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["master"]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "0 */6 * * *"  # تشغيل كل 6 ساعات
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    name: Deploy
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write   # مطلوب للمصادقة مع Deno Deploy
+      contents: read    # مطلوب لاستنساخ المستودع
+      actions: write    # مطلوب لإلغاء تشغيل `workflows` السابقة
+
     steps:
-      - name: Checkout
+      - name: Clone repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20' # أو أي إصدار يناسب مشروعك
+      - name: Install Node.js 20
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.4/install.sh | bash
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm install 20
+          nvm use 20
+          node -v
 
-      - name: Install dependencies
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies
         run: npm install
 
-      - name: Build project
-        run: npm start
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
         with:
-          # Upload entire repository or build folder (مثل dist/ أو build/)
-          path: '.' # عدّلها إذا كان التطبيق يولّد ملفات في مجلد معين مثل 'dist'
+          access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Start Project
+        run: npm run start
