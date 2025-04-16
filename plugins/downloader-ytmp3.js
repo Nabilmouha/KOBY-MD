@@ -5,6 +5,7 @@ const handler = async (m, { conn, text }) => {
   const query = text.trim();
   if (!query) {
     return conn.reply(m.chat, 'يرجى كتابة كلمة البحث عن فيديو من YouTube.', m);
+m.reply(wait);
   }
 
   try {
