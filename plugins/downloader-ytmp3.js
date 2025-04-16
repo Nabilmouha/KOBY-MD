@@ -1,55 +1,62 @@
-import fetch from 'node-fetch'
-import ffmpeg from 'fluent-ffmpeg'
-import fs from 'fs'
+import yt from 'nishi-yt'; // مكتبة التنزيل
+import yts from 'yt-search'; // مكتبة البحث
 
-let handler = async (m, { conn, command, text, usedPrefix }) => {
-  if (!text) return conn.reply(m.chat, '❀ Ingresa un link de un video de youtube', m)
-  //si borras creditos eri gei 👀
-m.reply(wait)
-  try {
-    let api = await fetch(`https://api.davidcyriltech.my.id/download/ytmp3?url=${text}`)
-    let json = await api.json()
-    let { title, download_url } = json.result
-
-    // Descargar الملف الصوتي
-    const response = await fetch(download_url)
-    const buffer = await response.buffer()
-
-    // حفظ الصوت في ملف مؤقت
-    const tempFile = `temp_${Date.now()}.mp3`
-    fs.writeFileSync(tempFile, buffer)
-
-    // تحويل الصوت إلى 48kbps باستخدام ffmpeg
-    const outputFile = `output_${Date.now()}.mp3`
-    
-    await new Promise((resolve, reject) => {
-      ffmpeg(tempFile)
-        .audioBitrate(64) // تقليل معدل البت إلى 48kbps
-        .audioChannels(1) // تحويل الصوت إلى قناة واحدة (Mono)
-        .audioFrequency(22050) // تقليل معدل العينات إلى 22.05kHz
-        .save(outputFile) // حفظ الملف المحول
-        .on('end', resolve)
-        .on('error', reject)
-    })
-
-    // إرسال الملف الصوتي المحول
-    const audioBuffer = fs.readFileSync(outputFile)
-    await conn.sendMessage(m.chat, {
-      audio: audioBuffer,
-      mimetype: 'audio/mpeg',
-      fileName: `${title}.mp3`,
-      caption: `🎶 *${title}*`,
-    }, { quoted: m })
-
-    // تنظيف الملفات المؤقتة
-    fs.unlinkSync(tempFile)
-    fs.unlinkSync(outputFile)
-
-  } catch (error) {
-    console.error(error)
-    m.reply('❌ حدث خطأ أثناء تحميل الأغنية. حاول مرة أخرى.')
+const handler = async (m, { conn, text }) => {
+  const query = text.trim();
+  if (!query) {
+    return conn.reply(m.chat, 'يرجى كتابة كلمة البحث عن فيديو من YouTube.', m);
   }
-}
 
-handler.command = ['ytmp3']
-export default handler
+  try {
+    const searchResult = await yts(query);
+    const video = searchResult.videos[0];
+
+    if (!video) {
+      return conn.reply(m.chat, 'لم يتم العثور على أي نتائج.', m);
+    }
+
+    const ytLink = video.url;
+
+    // إرسال معلومات الفيديو
+    const videoInfo = `
+*العنوان:* ${video.title}
+*الرابط:* ${video.url}
+*القناة:* ${video.author.name}
+*المدة:* ${video.timestamp}
+*المشاهدات:* ${video.views.toLocaleString()}
+*تم النشر:* ${video.ago}
+`.trim();
+
+    await conn.sendMessage(m.chat, {
+      image: { url: video.thumbnail },
+      caption: videoInfo
+    }, { quoted: m });
+
+    // تحميل الصوت بصيغة mp3
+    const results = await yt.download({
+      yt_link: ytLink,
+      yt_format: 'mp3',
+      logs: true,
+      saveId: true
+    });
+
+    if (results) {
+      const mediaUrl = results.media;
+
+      await conn.sendMessage(m.chat, {
+        audio: { url: mediaUrl },
+        mimetype: 'audio/mp4',
+        ptt: true,
+        caption: `🎵 *تم تنزيل الصوت:* ${results.info.title}`
+      }, { quoted: m });
+    } else {
+      conn.reply(m.chat, 'فشل في تحميل الملف من الرابط المحدد.', m);
+    }
+  } catch (error) {
+    console.error(error);
+    conn.reply(m.chat, 'حدث خطأ أثناء البحث أو التنزيل.', m);
+  }
+};
+handler.tags=handler.help=handler.command = /^ytmp3$/i;
+
+export default handler;
