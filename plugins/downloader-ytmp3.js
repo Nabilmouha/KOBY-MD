@@ -5,7 +5,7 @@ const handler = async (m, { conn, text }) => {
   const query = text.trim();
   if (!query) {
     return conn.reply(m.chat, 'يرجى كتابة كلمة البحث عن فيديو من YouTube.', m);
-m.reply(wait);
+
   }
 
   try {
@@ -58,6 +58,6 @@ m.reply(wait);
     conn.reply(m.chat, 'حدث خطأ أثناء البحث أو التنزيل.', m);
   }
 };
-handler.tags=handler.help=handler.command = /^ytmp3$/i;
+handler.command = /^ytmp3$/i;
 
 export default handler;
