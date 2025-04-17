@@ -29,7 +29,7 @@ let handler = async (m, { conn, args }) => {
           },
         },
         {
-          buttonId: `.ytv https://youtu.be/${video.videoId}`,
+          buttonId: `https://youtu.be/${video.videoId}`,
           buttonText: {
             displayText: '*🎥 Video*',
           },
