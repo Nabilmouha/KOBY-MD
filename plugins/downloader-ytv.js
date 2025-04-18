@@ -1,43 +1,34 @@
-import axios from "axios";
+import fetch from 'node-fetch';
 
-const handler = async (m, { conn, usedPrefix, text, command }) => {
-   if (!text) return m.reply(`.ytv link`);
+let handler = async (m, { conn, args }) => {
+  if (!args[0]) throw 'أرسل رابط فيديو يوتيوب!\nمثال: .ytmp4 https://youtu.be/EH3EouP3_EQ';
 
- const url = text.trim();
- const format = '360';
+  try {
+    let url = args[0];
+    let api = `https://www.velyn.biz.id/api/downloader/ytmp4?url=${encodeURIComponent(url)}`;
+    let res = await fetch(api);
+    let json = await res.json();
 
- m.reply(wait);
- const regex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
+    if (!json.status || !json.data?.status) throw 'فشل في جلب الفيديو، تأكد من الرابط!';
 
- if (!regex.test(url)) {
- return m.reply('link yang anda berikan tidak valid, silahkan masuk kan link yang benar.');
- }
- try {
- const response = await axios.post('http://kinchan.sytes.net/ytdl/downloader', {
- url: url,
- format: format
- });
+    let { title, url: videoUrl } = json.data;
 
- const { title, downloadUrl } = response.data;
+    if (!videoUrl) throw 'لم يتم العثور على رابط التحميل.';
 
- const videos = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
- const video = Buffer.from(videos.data, 'binary');
- 
- const caption = `*乂 YOUTUBE - VIDEO*\n` +
-                        `*العنوان:* ${title}\n`;
+    await conn.sendMessage(m.chat, {
+      video: { url: videoUrl },
+      caption: `🎥 *${title}*`,
+    }, { quoted: m });
 
- await conn.sendMessage(m.chat, {
- video: video,
- caption: caption,
- mimetype: 'video/mp4'
- }, { quoted: m });
- } catch (error) {
- console.error('Error:', error);
- m.reply('Terjadi kesalahan saat mengunduh video, silahkan coba lagi.');
- }
-}
+  } catch (e) {
+    console.error(e);
+    m.reply('حدث خطأ أثناء معالجة الطلب.');
+  }
+};
 
-handler.help = ['ytv'];
+handler.help = ['ytv <رابط>'];
 handler.tags = ['downloader'];
-handler.command = /^(ytv)$/i;
+handler.command = /^ytv$/i;
+handler.limit = false;
+
 export default handler;
