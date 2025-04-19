@@ -1,63 +1,37 @@
-import yt from 'nishi-yt'; // مكتبة التنزيل
-import yts from 'yt-search'; // مكتبة البحث
+import fetch from 'node-fetch';
 
-const handler = async (m, { conn, text }) => {
-  const query = text.trim();
-  if (!query) {
-    return conn.reply(m.chat, 'يرجى كتابة كلمة البحث عن فيديو من YouTube.', m);
+const handler = async (m, { conn, args, text }) => {
+  if (!text) return m.reply('وين الرابط؟ أرسل رابط يوتيوب.');
 
-  }
+  let api = `https://api.nekorinn.my.id/downloader/savetube?url=${encodeURIComponent(text)}&format=mp3`;
 
   try {
-    const searchResult = await yts(query);
-    const video = searchResult.videos[0];
+    let res = await fetch(api);
+    let json = await res.json();
 
-    if (!video) {
-      return conn.reply(m.chat, 'لم يتم العثور على أي نتائج.', m);
+    if (!json.status || !json.result?.download) {
+      return m.reply('فشل في جلب الرابط، تأكد من صحة الرابط.');
     }
 
-    const ytLink = video.url;
+    let { title, download, duration, quality } = json.result;
 
-    // إرسال معلومات الفيديو
-    const videoInfo = `
-*العنوان:* ${video.title}
-*الرابط:* ${video.url}
-*القناة:* ${video.author.name}
-*المدة:* ${video.timestamp}
-*المشاهدات:* ${video.views.toLocaleString()}
-*تم النشر:* ${video.ago}
-`.trim();
+    await m.reply(`🎶 *${title}*\n⏱️ مدة: ${duration}\n🎵 جودة: ${quality}kbps\n\nجاري الإرسال...`);
 
     await conn.sendMessage(m.chat, {
-      image: { url: video.thumbnail },
-      caption: videoInfo
+      audio: { url: download },
+      mimetype: 'audio/mpeg',
+      fileName: `${title}.mp3`,
+      ptt: false // إذا تبي يرسله كـ Voice Note خله true
     }, { quoted: m });
 
-    // تحميل الصوت بصيغة mp3
-    const results = await yt.download({
-      yt_link: ytLink,
-      yt_format: 'mp3',
-      logs: true,
-      saveId: true
-    });
-
-    if (results) {
-      const mediaUrl = results.media;
-
-      await conn.sendMessage(m.chat, {
-        audio: { url: mediaUrl },
-        mimetype: 'audio/mp4',
-        ptt: true,
-        caption: `🎵 *تم تنزيل الصوت:* ${results.info.title}`
-      }, { quoted: m });
-    } else {
-      conn.reply(m.chat, 'فشل في تحميل الملف من الرابط المحدد.', m);
-    }
-  } catch (error) {
-    console.error(error);
-    conn.reply(m.chat, 'حدث خطأ أثناء البحث أو التنزيل.', m);
+  } catch (e) {
+    console.error(e);
+    m.reply('حدث خطأ أثناء التحميل.');
   }
 };
-handler.command = /^ytmp3$/i;
+
+handler.command = /^ytaudio|ytmp3$/i; // تقدر تخليه أمر مثلا ytaudio أو ytmp3
+handler.help = ['ytaudio <url>'];
+handler.tags = ['downloader'];
 
 export default handler;
