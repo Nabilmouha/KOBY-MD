@@ -1,37 +1,23 @@
-import fetch from 'node-fetch';
+import { ytmp3 } from '@vreden/youtube_scraper';
 
-const handler = async (m, { conn, args, text }) => {
-  if (!text) return m.reply('وين الرابط؟ أرسل رابط يوتيوب.');
-
-  let api = `https://api.nekorinn.my.id/downloader/savetube?url=${encodeURIComponent(text)}&format=mp3`;
+const handler = async (m, { conn, text }) => {
+  if (!text) return m.reply('أدخل رابط يوتيوب');
 
   try {
-    let res = await fetch(api);
-    let json = await res.json();
-
-    if (!json.status || !json.result?.download) {
-      return m.reply('فشل في جلب الرابط، تأكد من صحة الرابط.');
+    const result = await ytmp3(text);
+    if (result?.status) {
+      await conn.sendMessage(m.chat, {
+        audio: { url: result.download.url },
+        mimetype: 'audio/mp4'
+      }, { quoted: m });
+    } else {
+      m.reply('فشل في تحميل الصوت');
     }
-
-    let { title, download, duration, quality } = json.result;
-
-    await m.reply(`🎶 *${title}*\n⏱️ مدة: ${duration}\n🎵 جودة: ${quality}kbps\n\nجاري الإرسال...`);
-
-    await conn.sendMessage(m.chat, {
-      audio: { url: download },
-      mimetype: 'audio/mpeg',
-      fileName: `${title}.mp3`,
-      ptt: false // إذا تبي يرسله كـ Voice Note خله true
-    }, { quoted: m });
-
-  } catch (e) {
-    console.error(e);
-    m.reply('حدث خطأ أثناء التحميل.');
+  } catch (err) {
+    console.error(err);
+    m.reply('حدث خطأ أثناء التحميل');
   }
 };
 
-handler.command = /^ytaudio|ytmp3$/i; // تقدر تخليه أمر مثلا ytaudio أو ytmp3
-handler.help = ['ytaudio <url>'];
-handler.tags = ['downloader'];
-
+handler.command = ['ytmp3'];
 export default handler;
