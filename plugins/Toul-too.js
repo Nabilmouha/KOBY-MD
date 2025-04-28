@@ -14,7 +14,7 @@ const handler = async (m, { conn, command, prefix }) => {
   if (!mime || !/image\/(png|jpe?g)/i.test(mime)) {
     throw `*${tradutor.texto1 || 'قم بالرد على صورة لتحويلها إلى ستايل جيبلي'}*`;
   }
-
+m.reply(wait);
   await conn.sendMessage(m.chat, { react: { text: "🔎", key: m.key } });
 
   const media = await q.download();
