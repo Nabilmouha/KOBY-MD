@@ -29,7 +29,7 @@ global.wm = '🩶KOBY-BOT🩵';
 global.titulowm = '🩶KOBY-BOT🩵';
 global.titulowm2 = `🩶KOBY-BOT🩵`
 global.igfg = '🩶KOBY-BOT🩵';
-global.wait = '> *_جاري التحميل●●●○○ 🌤 WAIT🌼_*';
+global.wait = '> *_جاري التحميل●●●○○ 🖤 WAIT🩶_*';
 
 /*global.imagen1 = fs.createReadStream('./src/assets/images/menu/languages/es/menu.png');
 global.imagen2 = fs.createReadStream('./src/assets/images/menu/languages/pt/menu.png');
