@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write   # مطلوب للمصادقة مع Deno Deploy
-      contents: read    # مطلوب لاستنساخ المستودع
-      actions: write    # مطلوب لإلغاء تشغيل `workflows` السابقة
+      id-token: write
+      contents: read
+      actions: write
 
     steps:
       - name: Clone repository
@@ -41,8 +41,10 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
-     - name: Install ffmpeg 
-        run: sudo apt install ffmpeg
+
+      - name: Install FFmpeg
+        run: sudo apt install -y ffmpeg
+
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.11.0
         with:
