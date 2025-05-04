@@ -41,7 +41,8 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
-
+     - name:Install ffmpeg 
+        run: sudo apt install ffmpeg
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.11.0
         with:
