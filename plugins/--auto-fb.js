@@ -1,38 +1,66 @@
-import { fbdown } from 'btch-downloader';
+import fs from 'fs';
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpegPath from 'ffmpeg-static';
+import { facebook } from 'notmebotz-tools';
+
+// تحديد مسار ffmpeg
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 const handler = async (m, { conn }) => {
-    const messageText = m.text.trim(); // استخدام m.text للحصول على محتوى الرسالة
+    const facebookUrlPattern = /^(https?:\/\/)?(www\.)?facebook\.com\/.+$/;
+    const messageText = m.text.trim();
 
-    // التأكد من أن الرابط موجود
-    if (!messageText) {
-        return conn.reply(m.chat, 'يرجى إرسال رابط Facebook لتحميله.', m);
+    if (!facebookUrlPattern.test(messageText)) {
+        return; // إذا لم يكن الرابط من Facebook، لا تفعل شيئًا
     }
 
-    // استدعاء API لتحميل الفيديو من Facebook
-    try {
-        let res = await fbdown(messageText);
-        const { Normal_video, HD, creator } = res;
+    m.reply("جاري تحميل الفيديو...");
 
-        // إرسال الفيديو
-        if (HD) {
-            await conn.sendMessage(m.chat, {
-                video: { url: HD },
-                caption: `🌟 *فيديو HD من Facebook تم تحميله!*`
-            });
-        } else if (Normal_video) {
-            await conn.sendMessage(m.chat, {
-                video: { url: Normal_video },
-                caption: `🎥 *فيديو Facebook تم تحميله!*`
-            });
-        }
+    try {
+        let fb = await facebook(messageText);
+
+        const videoUrl = fb?.data?.video?.hd || fb?.data?.video?.sd;
+        if (!videoUrl) return m.reply('لم يتم العثور على رابط الفيديو.');
+
+        const videoPath = `./src/tmp/facebook_${Date.now()}.mp4`;
+        const audioPath = videoPath.replace('.mp4', '.mp3');
+
+        // تنزيل الفيديو
+        let buffer = await (await fetch(videoUrl)).buffer();
+        fs.writeFileSync(videoPath, buffer);
+
+        // إرسال الفيديو للمستخدم
+        await conn.sendFile(m.chat, videoPath, 'facebook.mp4', '*_✅ تم التنزيل!_*', m);
+
+        // استخراج الصوت من الفيديو باستخدام ffmpeg
+        await new Promise((resolve, reject) => {
+            ffmpeg(videoPath)
+                .output(audioPath)
+                .toFormat('mp3')
+                .on('end', resolve)
+                .on('error', reject)
+                .run();
+        });
+
+        // إرسال الصوت المستخرج
+        await conn.sendMessage(
+            m.chat,
+            { audio: fs.readFileSync(audioPath), mimetype: 'audio/mpeg', ptt: false}, // إرسال الصوت كـ PTT
+            { quoted: m }
+        );
+
+        // حذف الملفات المؤقتة
+        fs.unlinkSync(videoPath);
+        fs.unlinkSync(audioPath);
+
     } catch (error) {
-        console.error(error);
-        conn.reply(m.chat, 'حدث خطأ أثناء معالجة الرابط.', m);
+        console.error("❌ خطأ أثناء تنزيل فيديو Facebook:", error);
+        m.reply('⚠️ حدث خطأ أثناء التنزيل. حاول مرة أخرى لاحقًا.');
     }
 };
 
-// استخدام RegExp في customPrefix للتحقق من روابط Facebook تلقائيًا
-handler.customPrefix = /https:\/\/(www\.)?(facebook\.com|fb\.com)\/.+/;  // تحقق من رابط Facebook
+// تشغيل البوت تلقائيًا عند إرسال رابط Facebook
+handler.customPrefix = /^(https?:\/\/)?(www\.)?facebook\.com\/.+$/;
 handler.command = new RegExp(); // بدون أمر محدد
 
 export default handler;
