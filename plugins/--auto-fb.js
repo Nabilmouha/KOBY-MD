@@ -14,7 +14,7 @@ const handler = async (m, { conn }) => {
         return; // إذا لم يكن الرابط من Facebook، لا تفعل شيئًا
     }
 
-    m.reply("جاري تحميل الفيديو...");
+    m.reply(wait);
 
     try {
         let fb = await facebook(messageText);
