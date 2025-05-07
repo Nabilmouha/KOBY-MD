@@ -8,7 +8,20 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
   if (!args[0]) return m.reply(`مثال:\n${usedPrefix + command} https://www.youtube.com/watch?v=dQw4w9WgXcQ`);
 
   try {
-    const result = await ytmp4(args[0]);
+    const url = args[0].trim();
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([\w-]{11})/);
+    if (!match) return m.reply('الرابط غير صالح');
+
+    const id = match[1];
+    const thumbnail = `https://i.ytimg.com/vi/${id}/hq720.jpg`;
+
+    // إرسال الصورة فقط أولًا
+    await conn.sendMessage(m.chat, {
+      image: { url: thumbnail },
+    }, { quoted: m });
+
+    // تابع تحميل الفيديو
+    const result = await ytmp4(url);
 
     if (!result.status || !result.download?.url) {
       return m.reply('فشل في استخراج رابط التحميل.');
@@ -20,10 +33,8 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     const filePath = path.join('./tmp', fileName);
     const fixedPath = filePath.replace('.mp4', '_fixed.mp4');
 
-    // تأكد من وجود مجلد التخزين المؤقت
     if (!fs.existsSync('./tmp')) fs.mkdirSync('./tmp');
 
-    // تحميل الفيديو إلى التخزين المحلي
     const response = await axios({
       method: 'GET',
       url: download.url,
@@ -32,22 +43,13 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     const writer = fs.createWriteStream(filePath);
     response.data.pipe(writer);
-
     await new Promise((resolve, reject) => {
       writer.on('finish', resolve);
       writer.on('error', reject);
     });
 
-    // إصلاح الفيديو باستخدام ffmpeg
     execSync(`ffmpeg -i "${filePath}" -movflags +faststart -c copy "${fixedPath}"`);
 
-    // إرسال الصورة والمعلومات أولًا
-    await conn.sendMessage(m.chat, {
-      image: { url: metadata.thumbnail },
-      caption: `*${metadata.title}*\n\n*المدة:* ${metadata.timestamp}\n*المشاهدات:* ${metadata.views.toLocaleString()}\n*القناة:* ${metadata.author.name}\n\n*الجودة:* ${download.quality}\n*الرابط:* ${metadata.url}`
-    }, { quoted: m });
-
-    // إرسال الفيديو المعالج
     await conn.sendMessage(m.chat, {
       video: { url: fixedPath },
       mimetype: 'video/mp4',
@@ -55,7 +57,6 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
       caption: metadata.title
     }, { quoted: m });
 
-    // حذف الملفات بعد الإرسال
     fs.unlinkSync(filePath);
     fs.unlinkSync(fixedPath);
 
@@ -66,7 +67,4 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 };
 
 handler.command = ['ytmp4'];
-handler.help = ['ytmp4 <رابط>'];
-handler.tags = ['downloader'];
-
 export default handler;
