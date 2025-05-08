@@ -29,8 +29,7 @@ const handler = async (m, { conn }) => {
   }
 };
 
-handler.command = ['salat', 'slt', 'صلاة'];
-handler.help = ['salat'];
-handler.tags = ['salat'];
+handler.customPrefix = /^(1|slt|salat|A?$)/i;
+handler.command = /^(1|slt|salat|A?$)/i;
 
 export default handler;
