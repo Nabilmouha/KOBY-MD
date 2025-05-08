@@ -15,9 +15,10 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     const id = match[1];
     const thumbnail = `https://i.ytimg.com/vi/${id}/hq720.jpg`;
 
-    // إرسال الصورة فقط أولًا
+    // إرسال الصورة مع كابتشن جاري التحميل
     await conn.sendMessage(m.chat, {
       image: { url: thumbnail },
+      caption: '*_جاري التحميل●●●○○ 🖤 WAIT🩶_*'
     }, { quoted: m });
 
     // تابع تحميل الفيديو
@@ -66,5 +67,5 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
   }
 };
 
-handler.command = ['ytmp4'];
+handler.command = ['yt'];
 export default handler;
