@@ -67,5 +67,5 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
   }
 };
 
-handler.command = ['yt'];
+handler.command = ['ytmp4'];
 export default handler;
